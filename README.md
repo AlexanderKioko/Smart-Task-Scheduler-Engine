@@ -1,4 +1,4 @@
-# 🚀 Smart Task Scheduler Engine
+#  Smart Task Scheduler Engine
 
 An intelligent task scheduling and automation system written in pure JavaScript. Features dependency management, priority-based execution, workflow orchestration, and automated scheduling with cron-like capabilities.
 
@@ -163,7 +163,7 @@ scheduler.createAutomation(
     
     // Actions to execute
     [
-        () => console.log('🚨 Disk space critical!'),
+        () => console.log(' Disk space critical!'),
         () => scheduler.executeTask(cleanupTaskId),
         () => sendAlert('disk-space-critical')
     ]
@@ -289,7 +289,7 @@ scheduler.createAutomation(
     
     // Remediation actions
     [
-        () => console.log('⚠️ System resources critical'),
+        () => console.log('System resources critical'),
         () => scheduler.executeTask(cleanupTempFilesTaskId),
         () => scheduler.executeTask(optimizeDatabaseTaskId),
         () => notifySystemAdmin('High resource usage detected')
@@ -464,8 +464,8 @@ const robustWorkflow = scheduler.createWorkflow({
 ### Node.js Environment
 
 ```bash
-# Save as smart-task-scheduler.js
-node smart-task-scheduler.js
+# Save as scheduler.js
+node scheduler.js
 
 # Or require in your project
 const TaskScheduler = require('./smart-task-scheduler.js');
@@ -479,7 +479,7 @@ const scheduler = new TaskScheduler();
 function displayDashboard() {
     const analytics = scheduler.getTaskAnalytics();
     
-    console.log('📊 TASK SCHEDULER DASHBOARD');
+    console.log('TASK SCHEDULER DASHBOARD');
     console.log('===========================');
     console.log(`Total Tasks: ${analytics.totalTasks}`);
     console.log(`Success Rate: ${analytics.successRate}%`);
