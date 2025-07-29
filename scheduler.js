@@ -7,7 +7,7 @@ class SmartTaskScheduler {
         this.activeTimers = new Map();
         this.taskIdCounter = 1;
         this.workflowIdCounter = 1;
-        
+
         this.priorities = {
             CRITICAL: 5,
             HIGH: 4,
@@ -15,7 +15,7 @@ class SmartTaskScheduler {
             LOW: 2,
             BACKGROUND: 1
         };
-        
+
         this.taskStatuses = {
             PENDING: 'pending',
             RUNNING: 'running',
@@ -24,18 +24,18 @@ class SmartTaskScheduler {
             CANCELLED: 'cancelled',
             WAITING: 'waiting'
         };
-        
+
         this.scheduleModes = {
             ONCE: 'once',
             RECURRING: 'recurring',
             CRON: 'cron',
             DEPENDENCY: 'dependency'
         };
-        
+
         // Start the main scheduler loop
         this.startScheduler();
     }
-    
+
     createTask(config) {
         const task = {
             id: this.taskIdCounter++,
@@ -43,27 +43,27 @@ class SmartTaskScheduler {
             description: config.description || '',
             priority: config.priority || 'MEDIUM',
             status: this.taskStatuses.PENDING,
-            
+
             // Execution details
             executor: config.executor || (() => console.log(`Executing ${config.name}`)),
             timeout: config.timeout || 30000, // 30 seconds default
             retries: config.retries || 0,
             currentRetries: 0,
-            
+
             // Dependencies
             dependencies: config.dependencies || [],
             dependents: [],
-            
+
             // Scheduling
             schedule: config.schedule || null,
             estimatedDuration: config.estimatedDuration || 1000,
-            
+
             // Metadata
             tags: config.tags || [],
             category: config.category || 'general',
             createdAt: new Date(),
             updatedAt: new Date(),
-            
+
             // Execution tracking
             startTime: null,
             endTime: null,
@@ -71,14 +71,14 @@ class SmartTaskScheduler {
             result: null,
             error: null
         };
-        
+
         this.tasks.set(task.id, task);
         this.updateDependents(task);
-        
-        console.log(`📋 Created task: ${task.name} (ID: ${task.id})`);
+
+        console.log(`Created task: ${task.name} (ID: ${task.id})`);
         return task;
     }
-    
+
     updateDependents(task) {
         // Update dependent tasks list for dependencies
         task.dependencies.forEach(depId => {
@@ -88,7 +88,7 @@ class SmartTaskScheduler {
             }
         });
     }
-    
+
     createWorkflow(config) {
         const workflow = {
             id: this.workflowIdCounter++,
@@ -101,19 +101,19 @@ class SmartTaskScheduler {
             createdAt: new Date(),
             executionOrder: []
         };
-        
+
         this.workflows.set(workflow.id, workflow);
-        
-        console.log(`🔄 Created workflow: ${workflow.name} (ID: ${workflow.id})`);
+
+        console.log(`Created workflow: ${workflow.name} (ID: ${workflow.id})`);
         return workflow;
     }
-    
+
     scheduleTask(taskId, scheduleConfig) {
         const task = this.tasks.get(taskId);
         if (!task) {
             throw new Error(`Task ${taskId} not found`);
         }
-        
+
         const schedule = {
             taskId,
             mode: scheduleConfig.mode || this.scheduleModes.ONCE,
@@ -126,38 +126,38 @@ class SmartTaskScheduler {
             lastExecution: null,
             nextExecution: null
         };
-        
+
         schedule.nextExecution = this.calculateNextExecution(schedule);
         this.schedules.set(`${taskId}_${Date.now()}`, schedule);
-        
+
         console.log(`⏰ Scheduled task ${task.name} for ${schedule.nextExecution}`);
         return schedule;
     }
-    
+
     calculateNextExecution(schedule) {
         const now = new Date();
-        
+
         switch (schedule.mode) {
             case this.scheduleModes.ONCE:
                 return schedule.executeAt > now ? schedule.executeAt : now;
-                
+
             case this.scheduleModes.RECURRING:
                 if (!schedule.lastExecution) {
                     return schedule.executeAt > now ? schedule.executeAt : now;
                 }
                 return new Date(schedule.lastExecution.getTime() + schedule.interval);
-                
+
             case this.scheduleModes.CRON:
                 return this.parseCronExpression(schedule.cronExpression, now);
-                
+
             case this.scheduleModes.DEPENDENCY:
                 return null; // Handled by dependency resolution
-                
+
             default:
                 return now;
         }
     }
-    
+
     parseCronExpression(cronExpr, fromDate) {
         // Simplified cron parser for common patterns
         // Format: "minute hour day month dayOfWeek"
@@ -166,158 +166,158 @@ class SmartTaskScheduler {
             console.warn('Invalid cron expression, using immediate execution');
             return fromDate;
         }
-        
+
         const [minute, hour, day, month, dayOfWeek] = parts;
         const nextRun = new Date(fromDate);
-        
+
         // Simple implementation for demonstration
         if (minute !== '*') nextRun.setMinutes(parseInt(minute));
         if (hour !== '*') nextRun.setHours(parseInt(hour));
-        
+
         // If time has passed today, schedule for tomorrow
         if (nextRun <= fromDate) {
             nextRun.setDate(nextRun.getDate() + 1);
         }
-        
+
         return nextRun;
     }
-    
+
     async executeTask(taskId) {
         const task = this.tasks.get(taskId);
         if (!task) {
             throw new Error(`Task ${taskId} not found`);
         }
-        
+
         // Check dependencies
         if (!this.areDependenciesMet(task)) {
             task.status = this.taskStatuses.WAITING;
-            console.log(`⏳ Task ${task.name} waiting for dependencies`);
+            console.log(`Task ${task.name} waiting for dependencies`);
             return false;
         }
-        
+
         task.status = this.taskStatuses.RUNNING;
         task.startTime = new Date();
         task.updatedAt = new Date();
-        
-        console.log(`🏃 Executing task: ${task.name}`);
-        
+
+        console.log(`Executing task: ${task.name}`);
+
         try {
             // Set timeout for task execution
             const timeoutPromise = new Promise((_, reject) => {
                 setTimeout(() => reject(new Error('Task timeout')), task.timeout);
             });
-            
+
             // Execute the task
             const executionPromise = Promise.resolve(task.executor(task));
-            
+
             task.result = await Promise.race([executionPromise, timeoutPromise]);
-            
+
             task.status = this.taskStatuses.COMPLETED;
             task.endTime = new Date();
             task.executionTime = task.endTime - task.startTime;
-            
-            console.log(`✅ Task ${task.name} completed in ${task.executionTime}ms`);
-            
+
+            console.log(`Task ${task.name} completed in ${task.executionTime}ms`);
+
             // Trigger dependent tasks
             this.triggerDependentTasks(task);
-            
+
             // Record execution
             this.recordExecution(task, true);
-            
+
             return true;
-            
+
         } catch (error) {
             task.error = error.message;
             task.endTime = new Date();
             task.executionTime = task.endTime - task.startTime;
-            
+
             // Handle retries
             if (task.currentRetries < task.retries) {
                 task.currentRetries++;
                 task.status = this.taskStatuses.PENDING;
-                console.log(`🔄 Retrying task ${task.name} (${task.currentRetries}/${task.retries})`);
-                
+                console.log(`Retrying task ${task.name} (${task.currentRetries}/${task.retries})`);
+
                 // Schedule retry after delay
                 setTimeout(() => this.executeTask(taskId), 5000);
                 return false;
             }
-            
+
             task.status = this.taskStatuses.FAILED;
-            console.log(`❌ Task ${task.name} failed: ${error.message}`);
-            
+            console.log(`Task ${task.name} failed: ${error.message}`);
+
             this.recordExecution(task, false);
             return false;
         }
     }
-    
+
     areDependenciesMet(task) {
         return task.dependencies.every(depId => {
             const depTask = this.tasks.get(depId);
             return depTask && depTask.status === this.taskStatuses.COMPLETED;
         });
     }
-    
+
     triggerDependentTasks(completedTask) {
         completedTask.dependents.forEach(dependentId => {
             const dependentTask = this.tasks.get(dependentId);
-            if (dependentTask && 
+            if (dependentTask &&
                 dependentTask.status === this.taskStatuses.WAITING &&
                 this.areDependenciesMet(dependentTask)) {
-                
+
                 dependentTask.status = this.taskStatuses.PENDING;
-                console.log(`🔓 Unlocked dependent task: ${dependentTask.name}`);
+                console.log(`Unlocked dependent task: ${dependentTask.name}`);
             }
         });
     }
-    
+
     async executeWorkflow(workflowId) {
         const workflow = this.workflows.get(workflowId);
         if (!workflow) {
             throw new Error(`Workflow ${workflowId} not found`);
         }
-        
+
         workflow.status = this.taskStatuses.RUNNING;
-        console.log(`🔄 Starting workflow: ${workflow.name}`);
-        
+        console.log(`Starting workflow: ${workflow.name}`);
+
         try {
             if (workflow.parallelExecution) {
                 await this.executeWorkflowParallel(workflow);
             } else {
                 await this.executeWorkflowSequential(workflow);
             }
-            
+
             workflow.status = this.taskStatuses.COMPLETED;
-            console.log(`✅ Workflow ${workflow.name} completed`);
-            
+            console.log(`Workflow ${workflow.name} completed`);
+
         } catch (error) {
             workflow.status = this.taskStatuses.FAILED;
-            console.log(`❌ Workflow ${workflow.name} failed: ${error.message}`);
-            
+            console.log(`Workflow ${workflow.name} failed: ${error.message}`);
+
             if (!workflow.continueOnError) {
                 throw error;
             }
         }
     }
-    
+
     async executeWorkflowSequential(workflow) {
         for (const taskId of workflow.taskIds) {
             const success = await this.executeTask(taskId);
             workflow.executionOrder.push(taskId);
-            
+
             if (!success && !workflow.continueOnError) {
                 throw new Error(`Task ${taskId} failed in workflow`);
             }
         }
     }
-    
+
     async executeWorkflowParallel(workflow) {
         const promises = workflow.taskIds.map(taskId => {
             workflow.executionOrder.push(taskId);
             return this.executeTask(taskId);
         });
-        
+
         const results = await Promise.allSettled(promises);
-        
+
         if (!workflow.continueOnError) {
             const failures = results.filter(r => r.status === 'rejected');
             if (failures.length > 0) {
@@ -325,7 +325,7 @@ class SmartTaskScheduler {
             }
         }
     }
-    
+
     recordExecution(task, success) {
         const record = {
             taskId: task.id,
@@ -338,43 +338,43 @@ class SmartTaskScheduler {
             result: task.result,
             timestamp: new Date()
         };
-        
+
         this.executionHistory.push(record);
-        
+
         // Keep only last 1000 records to prevent memory issues
         if (this.executionHistory.length > 1000) {
             this.executionHistory = this.executionHistory.slice(-1000);
         }
     }
-    
+
     startScheduler() {
         // Main scheduler loop - runs every 5 seconds
         const schedulerInterval = setInterval(() => {
             this.processSchedules();
         }, 5000);
-        
+
         this.schedulerTimer = schedulerInterval;
-        console.log('⚡ Task scheduler started');
+        console.log('Task scheduler started');
     }
-    
+
     processSchedules() {
         const now = new Date();
-        
+
         for (const [scheduleId, schedule] of this.schedules.entries()) {
             if (!schedule.isActive || !schedule.nextExecution) continue;
-            
+
             if (now >= schedule.nextExecution) {
                 const task = this.tasks.get(schedule.taskId);
-                
+
                 if (task && task.status === this.taskStatuses.PENDING) {
                     this.executeTask(schedule.taskId);
-                    
+
                     schedule.executionCount++;
                     schedule.lastExecution = now;
-                    
+
                     // Calculate next execution for recurring tasks
                     if (schedule.mode === this.scheduleModes.RECURRING) {
-                        if (!schedule.maxExecutions || 
+                        if (!schedule.maxExecutions ||
                             schedule.executionCount < schedule.maxExecutions) {
                             schedule.nextExecution = this.calculateNextExecution(schedule);
                         } else {
@@ -387,23 +387,23 @@ class SmartTaskScheduler {
             }
         }
     }
-    
+
     getTasksByPriority() {
         const tasksByPriority = {};
-        
+
         for (const priority in this.priorities) {
             tasksByPriority[priority] = [];
         }
-        
+
         for (const task of this.tasks.values()) {
             if (tasksByPriority[task.priority]) {
                 tasksByPriority[task.priority].push(task);
             }
         }
-        
+
         return tasksByPriority;
     }
-    
+
     getTaskAnalytics() {
         const analytics = {
             totalTasks: this.tasks.size,
@@ -414,39 +414,39 @@ class SmartTaskScheduler {
             mostFailedTasks: [],
             upcomingTasks: []
         };
-        
+
         // Calculate status distribution
         for (const status of Object.values(this.taskStatuses)) {
             analytics.statusDistribution[status] = 0;
         }
-        
+
         for (const priority in this.priorities) {
             analytics.priorityDistribution[priority] = 0;
         }
-        
+
         let totalExecutionTime = 0;
         let executedTasksCount = 0;
-        
+
         for (const task of this.tasks.values()) {
             analytics.statusDistribution[task.status]++;
             analytics.priorityDistribution[task.priority]++;
-            
+
             if (task.executionTime) {
                 totalExecutionTime += task.executionTime;
                 executedTasksCount++;
             }
         }
-        
-        analytics.averageExecutionTime = executedTasksCount > 0 
-            ? Math.round(totalExecutionTime / executedTasksCount) 
+
+        analytics.averageExecutionTime = executedTasksCount > 0
+            ? Math.round(totalExecutionTime / executedTasksCount)
             : 0;
-        
+
         // Calculate success rate from execution history
         if (this.executionHistory.length > 0) {
             const successCount = this.executionHistory.filter(h => h.success).length;
             analytics.successRate = Math.round((successCount / this.executionHistory.length) * 100);
         }
-        
+
         // Find most failed tasks
         const failureCounts = {};
         this.executionHistory.forEach(record => {
@@ -454,12 +454,12 @@ class SmartTaskScheduler {
                 failureCounts[record.taskName] = (failureCounts[record.taskName] || 0) + 1;
             }
         });
-        
+
         analytics.mostFailedTasks = Object.entries(failureCounts)
             .sort(([,a], [,b]) => b - a)
             .slice(0, 5)
             .map(([name, count]) => ({ name, failures: count }));
-        
+
         // Get upcoming scheduled tasks
         const now = new Date();
         analytics.upcomingTasks = Array.from(this.schedules.values())
@@ -471,40 +471,40 @@ class SmartTaskScheduler {
                 scheduledFor: s.nextExecution,
                 mode: s.mode
             }));
-        
+
         return analytics;
     }
-    
+
     pauseTask(taskId) {
         const task = this.tasks.get(taskId);
         if (task && task.status === this.taskStatuses.PENDING) {
             task.status = this.taskStatuses.CANCELLED;
-            console.log(`⏸️ Paused task: ${task.name}`);
+            console.log(`Paused task: ${task.name}`);
             return true;
         }
         return false;
     }
-    
+
     resumeTask(taskId) {
         const task = this.tasks.get(taskId);
         if (task && task.status === this.taskStatuses.CANCELLED) {
             task.status = this.taskStatuses.PENDING;
-            console.log(`▶️ Resumed task: ${task.name}`);
+            console.log(`Resumed task: ${task.name}`);
             return true;
         }
         return false;
     }
-    
+
     cancelTask(taskId) {
         const task = this.tasks.get(taskId);
         if (task) {
             task.status = this.taskStatuses.CANCELLED;
-            console.log(`🛑 Cancelled task: ${task.name}`);
+            console.log(`Cancelled task: ${task.name}`);
             return true;
         }
         return false;
     }
-    
+
     optimizeSchedule() {
         // Simple optimization: sort pending tasks by priority and estimated duration
         const pendingTasks = Array.from(this.tasks.values())
@@ -516,11 +516,11 @@ class SmartTaskScheduler {
                 }
                 return a.estimatedDuration - b.estimatedDuration;
             });
-        
-        console.log('🎯 Schedule optimized based on priority and duration');
+
+        console.log('Schedule optimized based on priority and duration');
         return pendingTasks;
     }
-    
+
     createAutomation(name, trigger, actions) {
         const automation = {
             id: `auto_${Date.now()}`,
@@ -531,37 +531,41 @@ class SmartTaskScheduler {
             executionCount: 0,
             lastTriggered: null
         };
-        
+
         // Check trigger every 10 seconds
         const checkTrigger = () => {
             if (automation.isActive && automation.trigger()) {
-                console.log(`🤖 Automation triggered: ${automation.name}`);
+                console.log(`Automation triggered: ${automation.name}`);
                 automation.actions.forEach(action => action());
                 automation.executionCount++;
                 automation.lastTriggered = new Date();
             }
         };
-        
+
         const intervalId = setInterval(checkTrigger, 10000);
         this.activeTimers.set(automation.id, intervalId);
-        
-        console.log(`🤖 Created automation: ${automation.name}`);
+
+        console.log(`Created automation: ${automation.name}`);
         return automation;
     }
-    
+
+    getTasksByStatus(status) {
+        return Array.from(this.tasks.values()).filter(task => task.status === status);
+    }
+
     stopScheduler() {
         if (this.schedulerTimer) {
             clearInterval(this.schedulerTimer);
-            console.log('🛑 Task scheduler stopped');
+            console.log('Task scheduler stopped');
         }
-        
+
         // Clear all automation timers
         for (const [id, timerId] of this.activeTimers.entries()) {
             clearInterval(timerId);
         }
         this.activeTimers.clear();
     }
-    
+
     exportTasks() {
         return {
             tasks: Array.from(this.tasks.values()),
@@ -571,7 +575,7 @@ class SmartTaskScheduler {
             exportedAt: new Date()
         };
     }
-    
+
     importTasks(data) {
         if (data.tasks) {
             data.tasks.forEach(task => {
@@ -581,7 +585,7 @@ class SmartTaskScheduler {
                 }
             });
         }
-        
+
         if (data.workflows) {
             data.workflows.forEach(workflow => {
                 this.workflows.set(workflow.id, workflow);
@@ -590,38 +594,35 @@ class SmartTaskScheduler {
                 }
             });
         }
-        
-        console.log(`📥 Imported ${data.tasks?.length || 0} tasks and ${data.workflows?.length || 0} workflows`);
+
+        console.log(`Imported ${data.tasks?.length || 0} tasks and ${data.workflows?.length || 0} workflows`);
     }
 }
 
 // Create scheduler instance
 const scheduler = new SmartTaskScheduler();
-
 // Demo setup with example tasks
-console.log('🚀 SMART TASK SCHEDULER ENGINE 🚀');
+console.log('SMART TASK SCHEDULER ENGINE');
 console.log('=====================================');
-
 // Create some example tasks
 const emailTask = scheduler.createTask({
     name: 'Send Daily Email Report',
     description: 'Generate and send daily analytics email',
     priority: 'HIGH',
     executor: () => {
-        console.log('📧 Sending daily email report...');
+        console.log('Sending daily email report...');
         return 'Email sent successfully';
     },
     estimatedDuration: 3000,
     category: 'communication',
     tags: ['email', 'reporting', 'daily']
 });
-
 const backupTask = scheduler.createTask({
     name: 'Database Backup',
     description: 'Create backup of main database',
     priority: 'CRITICAL',
     executor: () => {
-        console.log('💾 Creating database backup...');
+        console.log('Creating database backup...');
         return 'Backup completed';
     },
     timeout: 60000,
@@ -629,32 +630,28 @@ const backupTask = scheduler.createTask({
     category: 'maintenance',
     tags: ['backup', 'database']
 });
-
 const analyticsTask = scheduler.createTask({
     name: 'Process Analytics',
     description: 'Process user analytics data',
     priority: 'MEDIUM',
     dependencies: [backupTask.id], // Depends on backup completion
     executor: () => {
-        console.log('📊 Processing analytics data...');
+        console.log('Processing analytics data...');
         return 'Analytics processed';
     },
     category: 'analysis',
     tags: ['analytics', 'data']
 });
-
 // Schedule tasks
 scheduler.scheduleTask(emailTask.id, {
     mode: 'RECURRING',
     executeAt: new Date(Date.now() + 10000), // Start in 10 seconds
     interval: 30000 // Every 30 seconds for demo
 });
-
 scheduler.scheduleTask(backupTask.id, {
     mode: 'CRON',
     cronExpression: '0 2 * * *' // Daily at 2 AM
 });
-
 // Create a workflow
 const workflow = scheduler.createWorkflow({
     name: 'Daily Maintenance',
@@ -663,7 +660,6 @@ const workflow = scheduler.createWorkflow({
     parallelExecution: false,
     continueOnError: true
 });
-
 console.log('\n=== QUICK START COMMANDS ===');
 console.log('scheduler.getTaskAnalytics() - View task statistics');
 console.log('scheduler.optimizeSchedule() - Optimize task execution order');
@@ -674,7 +670,6 @@ console.log('scheduler.resumeTask(taskId) - Resume a paused task');
 console.log('');
 console.log('Example task IDs:', Array.from(scheduler.tasks.keys()));
 console.log('Example workflow ID:', workflow.id);
-
 // Create an automation example
 scheduler.createAutomation(
     'High Priority Alert',
@@ -684,11 +679,10 @@ scheduler.createAutomation(
         return analytics.successRate < 80;
     },
     [
-        () => console.log('🚨 ALERT: Task success rate below 80%!'),
-        () => console.log('📋 Consider reviewing failed tasks')
+        () => console.log('ALERT: Task success rate below 80%!'),
+        () => console.log('Consider reviewing failed tasks')
     ]
 );
-
 // Export for Node.js if needed
 if (typeof module !== 'undefined') {
     module.exports = SmartTaskScheduler;
