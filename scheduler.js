@@ -42,6 +42,13 @@ class SmartTaskScheduler {
         );
     }
 
+    // New method to filter tasks by category
+    getTasksByCategory(category) {
+        return Array.from(this.tasks.values()).filter(task =>
+            task.category === category
+        );
+    }
+
     createTask(config) {
         const task = {
             id: this.taskIdCounter++,
@@ -503,11 +510,9 @@ class SmartTaskScheduler {
 
 // Create scheduler instance
 const scheduler = new SmartTaskScheduler();
-
 // Demo setup with example tasks
 console.log('SMART TASK SCHEDULER ENGINE');
 console.log('=====================================');
-
 // Create some example tasks
 const emailTask = scheduler.createTask({
     name: 'Send Daily Email Report',
@@ -521,7 +526,6 @@ const emailTask = scheduler.createTask({
     category: 'communication',
     tags: ['email', 'reporting', 'daily']
 });
-
 const backupTask = scheduler.createTask({
     name: 'Database Backup',
     description: 'Create backup of main database',
@@ -535,7 +539,6 @@ const backupTask = scheduler.createTask({
     category: 'maintenance',
     tags: ['backup', 'database']
 });
-
 const analyticsTask = scheduler.createTask({
     name: 'Process Analytics',
     description: 'Process user analytics data',
@@ -548,19 +551,16 @@ const analyticsTask = scheduler.createTask({
     category: 'analysis',
     tags: ['analytics', 'data']
 });
-
 // Schedule tasks
 scheduler.scheduleTask(emailTask.id, {
     mode: 'RECURRING',
     executeAt: new Date(Date.now() + 10000),
     interval: 30000
 });
-
 scheduler.scheduleTask(backupTask.id, {
     mode: 'CRON',
     cronExpression: '0 2 * * *'
 });
-
 // Create a workflow
 const workflow = scheduler.createWorkflow({
     name: 'Daily Maintenance',
@@ -569,7 +569,6 @@ const workflow = scheduler.createWorkflow({
     parallelExecution: false,
     continueOnError: true
 });
-
 console.log('\n=== QUICK START COMMANDS ===');
 console.log('scheduler.getTaskAnalytics() - View task statistics');
 console.log('scheduler.optimizeSchedule() - Optimize task execution order');
@@ -580,7 +579,6 @@ console.log('scheduler.resumeTask(taskId) - Resume a paused task');
 console.log('');
 console.log('Example task IDs:', Array.from(scheduler.tasks.keys()));
 console.log('Example workflow ID:', workflow.id);
-
 // Create an automation example
 scheduler.createAutomation(
     'High Priority Alert',
@@ -593,7 +591,6 @@ scheduler.createAutomation(
         () => console.log('Consider reviewing failed tasks')
     ]
 );
-
 // Export for Node.js if needed
 if (typeof module !== 'undefined') {
     module.exports = SmartTaskScheduler;
