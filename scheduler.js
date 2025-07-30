@@ -66,6 +66,7 @@ class SmartTaskScheduler {
             estimatedDuration: config.estimatedDuration || 1000,
             tags: config.tags || [],
             category: config.category || 'general',
+            condition: config.condition || null,
             createdAt: new Date(),
             updatedAt: new Date(),
             startTime: null,
@@ -169,11 +170,19 @@ class SmartTaskScheduler {
         if (!task) {
             throw new Error(`Task ${taskId} not found`);
         }
+
+        // Check if the task has a condition and if it's met
+        if (task.condition && !task.condition()) {
+            console.log(`Condition not met for task: ${task.name}`);
+            return false;
+        }
+
         if (!this.areDependenciesMet(task)) {
             task.status = this.taskStatuses.WAITING;
             console.log(`Task ${task.name} waiting for dependencies`);
             return false;
         }
+
         task.status = this.taskStatuses.RUNNING;
         task.startTime = new Date();
         task.updatedAt = new Date();
@@ -513,6 +522,7 @@ const scheduler = new SmartTaskScheduler();
 // Demo setup with example tasks
 console.log('SMART TASK SCHEDULER ENGINE');
 console.log('=====================================');
+
 // Create some example tasks
 const emailTask = scheduler.createTask({
     name: 'Send Daily Email Report',
@@ -526,6 +536,7 @@ const emailTask = scheduler.createTask({
     category: 'communication',
     tags: ['email', 'reporting', 'daily']
 });
+
 const backupTask = scheduler.createTask({
     name: 'Database Backup',
     description: 'Create backup of main database',
@@ -539,6 +550,7 @@ const backupTask = scheduler.createTask({
     category: 'maintenance',
     tags: ['backup', 'database']
 });
+
 const analyticsTask = scheduler.createTask({
     name: 'Process Analytics',
     description: 'Process user analytics data',
@@ -551,16 +563,36 @@ const analyticsTask = scheduler.createTask({
     category: 'analysis',
     tags: ['analytics', 'data']
 });
+
+// Example task with a condition
+const conditionalTask = scheduler.createTask({
+    name: 'Conditional Task',
+    description: 'This task will only execute if the condition is met.',
+    priority: 'LOW',
+    executor: () => {
+        console.log('Executing conditional task...');
+        return 'Conditional task executed successfully';
+    },
+    condition: () => {
+        // Example condition: only execute if the current hour is even
+        return new Date().getHours() % 2 === 0;
+    },
+    category: 'conditional',
+    tags: ['conditional']
+});
+
 // Schedule tasks
 scheduler.scheduleTask(emailTask.id, {
     mode: 'RECURRING',
     executeAt: new Date(Date.now() + 10000),
     interval: 30000
 });
+
 scheduler.scheduleTask(backupTask.id, {
     mode: 'CRON',
     cronExpression: '0 2 * * *'
 });
+
 // Create a workflow
 const workflow = scheduler.createWorkflow({
     name: 'Daily Maintenance',
@@ -569,6 +601,7 @@ const workflow = scheduler.createWorkflow({
     parallelExecution: false,
     continueOnError: true
 });
+
 console.log('\n=== QUICK START COMMANDS ===');
 console.log('scheduler.getTaskAnalytics() - View task statistics');
 console.log('scheduler.optimizeSchedule() - Optimize task execution order');
@@ -579,6 +612,7 @@ console.log('scheduler.resumeTask(taskId) - Resume a paused task');
 console.log('');
 console.log('Example task IDs:', Array.from(scheduler.tasks.keys()));
 console.log('Example workflow ID:', workflow.id);
+
 // Create an automation example
 scheduler.createAutomation(
     'High Priority Alert',
@@ -591,6 +625,7 @@ scheduler.createAutomation(
         () => console.log('Consider reviewing failed tasks')
     ]
 );
+
 // Export for Node.js if needed
 if (typeof module !== 'undefined') {
     module.exports = SmartTaskScheduler;
