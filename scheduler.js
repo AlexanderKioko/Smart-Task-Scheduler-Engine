@@ -64,6 +64,15 @@ class SmartTaskScheduler {
         );
     }
 
+    // New method to search tasks by keyword
+    searchTasksByKeyword(keyword) {
+        const lowerCaseKeyword = keyword.toLowerCase();
+        return Array.from(this.tasks.values()).filter(task =>
+            task.name.toLowerCase().includes(lowerCaseKeyword) ||
+            task.description.toLowerCase().includes(lowerCaseKeyword)
+        );
+    }
+
     createTask(config) {
         const task = {
             id: this.taskIdCounter++,
