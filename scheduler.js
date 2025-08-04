@@ -57,6 +57,13 @@ class SmartTaskScheduler {
         });
     }
 
+    // New method to filter tasks by status and priority
+    getTasksByStatusAndPriority(status, priority) {
+        return Array.from(this.tasks.values()).filter(task =>
+            task.status === status && task.priority === priority
+        );
+    }
+
     createTask(config) {
         const task = {
             id: this.taskIdCounter++,
