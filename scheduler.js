@@ -49,6 +49,14 @@ class SmartTaskScheduler {
         );
     }
 
+    // New method to filter tasks by creation date
+    getTasksByCreationDate(startDate, endDate) {
+        return Array.from(this.tasks.values()).filter(task => {
+            const createdAt = task.createdAt;
+            return createdAt >= startDate && createdAt <= endDate;
+        });
+    }
+
     createTask(config) {
         const task = {
             id: this.taskIdCounter++,
@@ -170,19 +178,16 @@ class SmartTaskScheduler {
         if (!task) {
             throw new Error(`Task ${taskId} not found`);
         }
-
         // Check if the task has a condition and if it's met
         if (task.condition && !task.condition()) {
             console.log(`Condition not met for task: ${task.name}`);
             return false;
         }
-
         if (!this.areDependenciesMet(task)) {
             task.status = this.taskStatuses.WAITING;
             console.log(`Task ${task.name} waiting for dependencies`);
             return false;
         }
-
         task.status = this.taskStatuses.RUNNING;
         task.startTime = new Date();
         task.updatedAt = new Date();
@@ -522,7 +527,6 @@ const scheduler = new SmartTaskScheduler();
 // Demo setup with example tasks
 console.log('SMART TASK SCHEDULER ENGINE');
 console.log('=====================================');
-
 // Create some example tasks
 const emailTask = scheduler.createTask({
     name: 'Send Daily Email Report',
