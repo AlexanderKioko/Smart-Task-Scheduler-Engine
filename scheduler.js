@@ -81,6 +81,14 @@ class SmartTaskScheduler {
         });
     }
 
+    // New method to filter tasks by estimated duration
+    getTasksByEstimatedDuration(minDuration, maxDuration) {
+        return Array.from(this.tasks.values()).filter(task => {
+            const estimatedDuration = task.estimatedDuration;
+            return estimatedDuration >= minDuration && estimatedDuration <= maxDuration;
+        });
+    }
+
     createTask(config) {
         const task = {
             id: this.taskIdCounter++,
