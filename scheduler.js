@@ -89,6 +89,14 @@ class SmartTaskScheduler {
         });
     }
 
+    // New method to filter tasks by last updated time
+    getTasksByLastUpdatedTime(startDate, endDate) {
+        return Array.from(this.tasks.values()).filter(task => {
+            const updatedAt = task.updatedAt;
+            return updatedAt >= startDate && updatedAt <= endDate;
+        });
+    }
+
     createTask(config) {
         const task = {
             id: this.taskIdCounter++,
