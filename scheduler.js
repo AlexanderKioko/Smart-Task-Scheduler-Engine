@@ -73,6 +73,14 @@ class SmartTaskScheduler {
         );
     }
 
+    // New method to filter tasks by execution time
+    getTasksByExecutionTime(minTime, maxTime) {
+        return Array.from(this.tasks.values()).filter(task => {
+            const executionTime = task.executionTime;
+            return executionTime >= minTime && executionTime <= maxTime;
+        });
+    }
+
     createTask(config) {
         const task = {
             id: this.taskIdCounter++,
